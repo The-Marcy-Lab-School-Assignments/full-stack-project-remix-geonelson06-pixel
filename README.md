@@ -1,142 +1,298 @@
-# Todo App — Full-Stack Case Study
+# PartyHub — Full-Stack Case Study
 
-A full-stack Todo app built with React, Express, and Postgres. Demonstrates session-based authentication, session rehydration, auth-dependent data fetching, and conditional rendering — the same patterns students use in their full-stack projects.
+A full-stack Mario Party event coordination app built with React, Express, and Postgres. PartyHub helps Nintendo Switch players organize Mario Party sessions by creating joinable game events with custom rules and player limits.
 
-## User Stories
+The application demonstrates session-based authentication, protected API routes, session rehydration, relational database design, and full-stack CRUD functionality using the PERN stack.
 
-**Auth**
-- A user can register for an account with a username and password
-- A user can log in to an existing account
-- A user can log out
-- A returning user who has an active session is automatically logged in when they revisit the app
+---
 
-**Todos**
-- A logged-in user can see all of their todos
-- A logged-in user can create a new todo by entering a title
-- A logged-in user can mark a todo as complete or incomplete
-- A logged-in user can delete a todo
+# Mission Statement
 
-## Schema
+PartyHub is designed for Nintendo Switch players who want an easier way to organize Mario Party game sessions with friends or online players. Instead of coordinating through scattered Discord messages or group chats, users can create structured game lobbies with selected games, rules, and player limits.
+
+---
+
+# User Stories
+
+## Authentication
+
+* A user can register for an account with a username, email, Switch friend code, and password
+* A user can log in to an existing account
+* A user can log out
+* A returning user with an active session is automatically logged in after refreshing the page
+
+---
+
+## Events
+
+* A logged-in user can create a Mario Party event
+* A logged-in user can view all available events
+* A logged-in user can join an event
+* A logged-in user can leave an event
+* A logged-in user can delete events they created
+* An event can only contain up to 4 total players
+
+---
+
+# Schema
+
+## users
 
 ```
 users
-─────────────────────────────
-user_id       SERIAL PRIMARY KEY
-username      TEXT UNIQUE NOT NULL
-password_hash TEXT NOT NULL
-
-todos
-─────────────────────────────
-todo_id     SERIAL PRIMARY KEY
-title       TEXT NOT NULL
-is_complete BOOLEAN DEFAULT FALSE
-user_id     INTEGER REFERENCES users(user_id) ON DELETE CASCADE
+────────────────────────────────────
+user_id         SERIAL PRIMARY KEY
+username        TEXT UNIQUE NOT NULL
+email           TEXT UNIQUE NOT NULL
+friend_code     TEXT NOT NULL
+password_hash   TEXT NOT NULL
 ```
 
-A user has many todos. Deleting a user cascades to delete all of their todos.
+---
 
-## API Contract
+## events
 
-### Auth endpoints
-
-| Method | Endpoint             | Request Body             | Response                          |
-| ------ | -------------------- | ------------------------ | --------------------------------- |
-| POST   | `/api/auth/register` | `{ username, password }` | `{ user_id, username }`           |
-| POST   | `/api/auth/login`    | `{ username, password }` | `{ user_id, username }`           |
-| DELETE | `/api/auth/logout`   | —                        | `{ message }`                     |
-| GET    | `/api/auth/me`       | —                        | `{ user_id, username }` or `null` |
-
-### Todo endpoints (all require authentication)
-
-| Method | Endpoint              | Request Body      | Response                                     |
-| ------ | --------------------- | ----------------- | -------------------------------------------- |
-| GET    | `/api/todos`          | —                 | `[{ todo_id, title, is_complete, user_id }]` |
-| POST   | `/api/todos`          | `{ title }`       | `{ todo_id, title, is_complete, user_id }`   |
-| PATCH  | `/api/todos/:todo_id` | `{ is_complete }` | `{ todo_id, title, is_complete, user_id }`   |
-| DELETE | `/api/todos/:todo_id` | —                 | `{ todo_id, title, is_complete, user_id }`   |
-
-## Setup
-
-### 1. Database
-
-Create a local Postgres database:
-
-```sh
-createdb todos_casestudy
+```
+events
+────────────────────────────────────
+event_id        SERIAL PRIMARY KEY
+title           TEXT NOT NULL
+game            TEXT NOT NULL
+minigame_type   TEXT
+rules           TEXT
+event_date      TIMESTAMP
+host_user_id    INTEGER REFERENCES users(user_id)
+                 ON DELETE CASCADE
 ```
 
-### 2. Server
+---
 
-```sh
+## event_players
+
+```
+event_players
+────────────────────────────────────
+event_player_id SERIAL PRIMARY KEY
+event_id        INTEGER REFERENCES events(event_id)
+                 ON DELETE CASCADE
+user_id         INTEGER REFERENCES users(user_id)
+                 ON DELETE CASCADE
+```
+
+---
+
+# Relationships
+
+* A user can host many events
+* An event belongs to one host user
+* A user can join many events
+* An event can contain many players
+* Deleting a user deletes their hosted events and joined event records
+
+---
+
+# API Contract
+
+# Auth Endpoints
+
+| Method | Endpoint             | Request Body                                 | Response                                              |
+| ------ | -------------------- | -------------------------------------------- | ----------------------------------------------------- |
+| POST   | `/api/auth/register` | `{ username, email, friend_code, password }` | `{ user_id, username, email, friend_code }`           |
+| POST   | `/api/auth/login`    | `{ email, password }`                        | `{ user_id, username, email, friend_code }`           |
+| DELETE | `/api/auth/logout`   | —                                            | `{ message }`                                         |
+| GET    | `/api/auth/me`       | —                                            | `{ user_id, username, email, friend_code }` or `null` |
+
+---
+
+# Event Endpoints
+
+(All event routes require authentication.)
+
+| Method | Endpoint                | Request Body                                        | Response              |
+| ------ | ----------------------- | --------------------------------------------------- | --------------------- |
+| GET    | `/api/events`           | —                                                   | `[{ event objects }]` |
+| POST   | `/api/events`           | `{ title, game, minigame_type, rules, event_date }` | `{ created event }`   |
+| DELETE | `/api/events/:event_id` | —                                                   | `{ deleted event }`   |
+
+---
+
+# Join Event Endpoints
+
+| Method | Endpoint                      | Request Body | Response                      |
+| ------ | ----------------------------- | ------------ | ----------------------------- |
+| POST   | `/api/events/:event_id/join`  | —            | `{ message: "Joined event" }` |
+| DELETE | `/api/events/:event_id/leave` | —            | `{ message: "Left event" }`   |
+
+---
+
+# Example Event Object
+
+```
+{
+  "event_id": 1,
+  "title": "Mario Party Superstars Friday Night",
+  "game": "Mario Party Superstars",
+  "minigame_type": "Skill-Based",
+  "rules": "20 turns, no CPUs",
+  "event_date": "2026-05-20T20:00:00.000Z",
+  "host_user_id": 3
+}
+```
+
+---
+
+# Setup
+
+## 1. Database
+
+Create the Postgres database:
+
+```
+createdb partyhub_db
+```
+
+---
+
+## 2. Server
+
+```
 cd server
 npm install
 cp .env.template .env
 ```
 
-Open `.env` and fill in your Postgres credentials and a session secret. Then seed the database:
+Fill in the `.env` file with your Postgres credentials and session secret.
 
-```sh
+Seed the database:
+
+```
 npm run db:seed
 ```
 
 Start the server:
 
-```sh
+```
 npm run dev
 ```
 
-The server runs on `http://localhost:8080`.
+The server runs on:
 
-### 3. Frontend
+```
+http://localhost:8080
+```
+
+---
+
+## 3. Frontend
 
 In a second terminal:
 
-```sh
+```
 cd frontend
 npm install
 npm run dev
 ```
 
-The frontend runs on `http://localhost:5173`. The Vite dev proxy forwards all `/api` requests to the Express server so session cookies work correctly.
-
-## Seed Users
-
-After running `npm run db:seed`, these accounts are available:
-
-| Username | Password    |
-| -------- | ----------- |
-| alice    | password123 |
-| bob      | password123 |
-
-## Application Structure
+The frontend runs on:
 
 ```
-swe-casestudy-7-todo-app/
-├── frontend/               # React app (Vite)
+http://localhost:5173
+```
+
+The Vite proxy forwards `/api` requests to the Express server so session cookies work correctly during development.
+
+---
+
+# Seed Users
+
+After running the seed script, these test accounts are available:
+
+| Username  | Password    |
+| --------- | ----------- |
+| mariofan  | password123 |
+| luigiking | password123 |
+
+---
+
+# Application Structure
+
+```
+partyhub/
+├── frontend/
 │   ├── src/
-│   │   ├── App.jsx         # Root component: currentUser state, session rehydration, auth handlers
+│   │   ├── App.jsx
 │   │   ├── adapters/
-│   │   │   ├── auth-adapters.js  # Fetch adapters for /api/auth/* endpoints
-│   │   │   └── todo-adapters.js  # Fetch adapters for /api/todos/* endpoints
+│   │   │   ├── auth-adapters.js
+│   │   │   └── event-adapters.js
 │   │   └── components/
-│   │       ├── AuthPage.jsx    # Login + Register forms (shown when logged out)
-│   │       ├── TodoPage.jsx    # Main app container (shown when logged in)
-│   │       ├── AddTodoForm.jsx # Form to create a new todo
-│   │       ├── TodoList.jsx    # Renders a list of TodoItems
-│   │       └── TodoItem.jsx    # Single todo: checkbox, title, delete button
-│   └── vite.config.js      # Proxies /api requests to Express in development
-└── server/                 # Express + Postgres API
-    ├── index.js            # App entry point, route definitions
+│   │       ├── AuthPage.jsx
+│   │       ├── EventPage.jsx
+│   │       ├── CreateEventForm.jsx
+│   │       ├── EventList.jsx
+│   │       ├── EventCard.jsx
+│   │       └── JoinButton.jsx
+│   └── vite.config.js
+│
+└── server/
+    ├── index.js
     ├── controllers/
-    │   ├── authControllers.js  # register, login, logout, getMe
-    │   └── todoControllers.js  # list, create, update, delete todos
+    │   ├── authControllers.js
+    │   └── eventControllers.js
     ├── models/
-    │   ├── userModel.js    # SQL queries for the users table
-    │   └── todoModel.js    # SQL queries for the todos table
+    │   ├── userModel.js
+    │   ├── eventModel.js
+    │   └── eventPlayerModel.js
     ├── middleware/
-    │   ├── checkAuthentication.js  # Blocks unauthenticated requests
-    │   └── logRoutes.js            # Logs each incoming request
+    │   ├── checkAuthentication.js
+    │   └── logRoutes.js
     └── db/
-        ├── pool.js         # Postgres connection pool
-        └── seed.js         # Creates tables and inserts sample data
+        ├── pool.js
+        └── seed.js
 ```
+
+---
+
+# MVP Features
+
+* Session-based authentication
+* Session rehydration
+* Create events
+* Join events
+* Leave events
+* Delete hosted events
+* Player cap enforcement
+* Protected routes
+* Responsive frontend UI
+
+---
+
+# Stretch Features
+
+* Direct messaging between users
+* Real-time event updates with Socket.io
+* Friend requests
+* User profile pages
+* Event chat rooms
+* Nintendo API integration
+* Matchmaking filters
+* Mobile responsive redesign
+
+---
+
+# Technical Challenges
+
+One of the primary technical challenges in this project is managing many-to-many relationships between users and events while enforcing a 4-player limit per event. This requires backend validation before allowing users to join a lobby.
+
+Another challenge is maintaining session persistence using cookies and session rehydration so that users remain logged in after refreshing the page.
+
+---
+
+# Future Improvements
+
+Future versions of PartyHub would include:
+
+* real-time lobby updates
+* in-app messaging
+* Discord integration
+* notifications for joined events
+* matchmaking by preferred Mario Party game or ruleset

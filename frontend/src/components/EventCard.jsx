@@ -10,7 +10,8 @@ const EventCard = ({
   currentUser,
 }) => {
   const handleJoin = async () => {
-    const { error } = await joinEvent(event.event_id);
+    const { error } =
+      await joinEvent(event.event_id);
 
     if (error) {
       return alert(error);
@@ -20,7 +21,8 @@ const EventCard = ({
   };
 
   const handleLeave = async () => {
-    const { error } = await leaveEvent(event.event_id);
+    const { error } =
+      await leaveEvent(event.event_id);
 
     if (error) {
       return alert(error);
@@ -30,7 +32,8 @@ const EventCard = ({
   };
 
   const handleDelete = async () => {
-    const { error } = await deleteEvent(event.event_id);
+    const { error } =
+      await deleteEvent(event.event_id);
 
     if (error) {
       return alert(error);
@@ -41,19 +44,44 @@ const EventCard = ({
 
   return (
     <div className="event-card">
-      <div className="star-badge">⭐</div>
+      <div className="star-badge">
+        ⭐
+      </div>
 
       <h2>{event.title}</h2>
 
-      <p>🎮 {event.game}</p>
-
-      <p>🎲 {event.minigame_type}</p>
-
-      <p>📜 {event.rules}</p>
+      <p>
+        👤 Host: {event.username}
+      </p>
 
       <p>
-        📅{' '}
-        {new Date(event.event_date).toLocaleString()}
+        🎮 Switch Code:
+        {' '}
+        {event.friend_code}
+      </p>
+
+      <p>
+        🎲 Game: {event.game}
+      </p>
+
+      <p>
+        🕹️ Type:
+        {' '}
+        {event.minigame_type}
+      </p>
+
+      <p>
+        📜 Rules:
+        {' '}
+        {event.rules}
+      </p>
+
+      <p>
+        📅
+        {' '}
+        {new Date(
+          event.event_date
+        ).toLocaleString()}
       </p>
 
       <div className="card-buttons">

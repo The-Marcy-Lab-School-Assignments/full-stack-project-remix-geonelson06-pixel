@@ -17,6 +17,14 @@ const MatchmakingFilters = ({
         </option>
 
         <option>
+          N64 Games
+        </option>
+
+        <option>
+          GC/Wii/Wii U Games
+        </option>
+
+        <option>
           Mario Party Superstars
         </option>
 
@@ -25,7 +33,7 @@ const MatchmakingFilters = ({
         </option>
 
         <option>
-          Mario Party 8
+          Super Mario Party Jamboree
         </option>
       </select>
 

@@ -26,8 +26,12 @@ const handleFetch = async (url, options = {}) => {
   }
 };
 
-export const register = async (body) => {
-  return handleFetch('/api/auth/register', {
+export const fetchEvents = async () => {
+  return handleFetch('/api/events');
+};
+
+export const createEvent = async (body) => {
+  return handleFetch('/api/events', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -36,22 +40,14 @@ export const register = async (body) => {
   });
 };
 
-export const login = async (body) => {
-  return handleFetch('/api/auth/login', {
+export const joinEvent = async (eventId) => {
+  return handleFetch(`/api/events/${eventId}/join`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
   });
 };
 
-export const logout = async () => {
-  return handleFetch('/api/auth/logout', {
+export const deleteEvent = async (eventId) => {
+  return handleFetch(`/api/events/${eventId}`, {
     method: 'DELETE',
   });
-};
-
-export const getMe = async () => {
-  return handleFetch('/api/auth/me');
 };

@@ -1,84 +1,90 @@
 import { useState } from 'react';
 
-function LoginForm({ handleLogin }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [errorMessage, setErrorMessage] = useState(null);
+import {
+  login,
+  register,
+} from '../adapters/auth-adapters';
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const error = await handleLogin(username, password);
+const AuthPage = ({ setCurrentUser }) => {
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    const form = event.target;
+
+    const body = {
+      username: form.username?.value,
+      email: form.email.value,
+      friend_code: form.friend_code?.value,
+      password: form.password.value,
+    };
+
+    const action = isRegistering ? register : login;
+
+    const { data, error } = await action(body);
+
     if (error) {
-      setErrorMessage('Invalid username or password.');
+      return alert(error);
     }
+
+    setCurrentUser(data);
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Log In</h2>
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-      {errorMessage && <p className="error">{errorMessage}</p>}
-      <button type="submit">Log In</button>
-    </form>
-  );
-}
+    <div className="auth-card">
+      <h2>
+        {isRegistering ? 'Create Account' : 'Login'}
+      </h2>
 
-function RegisterForm({ handleRegister }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [errorMessage, setErrorMessage] = useState(null);
+      <form onSubmit={handleSubmit}>
+        {isRegistering && (
+          <>
+            <input
+              name="username"
+              placeholder="Username"
+              required
+            />
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const error = await handleRegister(username, password);
-    if (error) {
-      setErrorMessage('Could not register. Username may already be taken.');
-    }
-  };
+            <input
+              name="friend_code"
+              placeholder="Switch Friend Code"
+              required
+            />
+          </>
+        )}
 
-  return (
-    <form onSubmit={handleSubmit}>
-      <h2>Register</h2>
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-      {errorMessage && <p className="error">{errorMessage}</p>}
-      <button type="submit">Register</button>
-    </form>
-  );
-}
+        <input
+          type="email"
+          name="email"
+          placeholder="Email"
+          required
+        />
 
-function AuthPage({ handleLogin, handleRegister }) {
-  return (
-    <div id="auth-section">
-      <LoginForm handleLogin={handleLogin} />
-      <RegisterForm handleRegister={handleRegister} />
+        <input
+          type="password"
+          name="password"
+          placeholder="Password"
+          required
+        />
+
+        <button>
+          {isRegistering ? 'Register' : 'Login'}
+        </button>
+      </form>
+
+      <button
+        className="switch-auth"
+        onClick={() =>
+          setIsRegistering(!isRegistering)
+        }
+      >
+        {isRegistering
+          ? 'Already have an account? Login'
+          : 'Need an account? Register'}
+      </button>
     </div>
   );
-}
+};
 
 export default AuthPage;

@@ -1,59 +1,184 @@
 const path = require('path');
+
 const express = require('express');
-const cookieSession = require('cookie-session');
+
+const cookieSession =
+  require('cookie-session');
+
 require('dotenv').config();
 
-const logRoutes = require('./middleware/logRoutes');
-const checkAuthentication = require('./middleware/checkAuthentication');
-const authControllers = require('./controllers/authControllers');
-const todoControllers = require('./controllers/todoControllers');
+const logRoutes =
+  require('./middleware/logRoutes');
+
+const checkAuthentication =
+  require('./middleware/checkAuthentication');
+
+const authControllers =
+  require('./controllers/authControllers');
+
+const eventControllers =
+  require('./controllers/eventControllers');
+
+const messageControllers =
+  require('./controllers/messageControllers');
+
+const matchmakingControllers =
+  require('./controllers/matchmakingControllers');
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+
+const PORT =
+  process.env.PORT || 8080;
 
 // ====================================
 // Middleware
 // ====================================
 
 app.use(logRoutes);
-app.use(cookieSession({ name: 'session', secret: process.env.SESSION_SECRET }));
+
+app.use(
+  cookieSession({
+    name: 'session',
+
+    secret:
+      process.env.SESSION_SECRET,
+  })
+);
+
 app.use(express.json());
 
-// In production, serve the built React app from frontend/dist.
-// In development, Vite's dev server handles the frontend on a separate port
-// and proxies /api requests to this server.
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+// In production, serve the React app
+
+app.use(
+  express.static(
+    path.join(
+      __dirname,
+      '../frontend/dist'
+    )
+  )
+);
 
 // ====================================
-// Auth routes
+// Auth Routes
 // ====================================
 
-app.post('/api/auth/register', authControllers.register);
-app.post('/api/auth/login', authControllers.login);
-app.get('/api/auth/me', authControllers.getMe);
-app.delete('/api/auth/logout', authControllers.logout);
+app.post(
+  '/api/auth/register',
+  authControllers.register
+);
+
+app.post(
+  '/api/auth/login',
+  authControllers.login
+);
+
+app.get(
+  '/api/auth/me',
+  authControllers.getMe
+);
+
+app.delete(
+  '/api/auth/logout',
+  authControllers.logout
+);
 
 // ====================================
-// Todo routes (all require authentication)
+// Event Routes
 // ====================================
 
-app.get('/api/todos', checkAuthentication, todoControllers.listTodos);
-app.post('/api/todos', checkAuthentication, todoControllers.createTodo);
-app.patch('/api/todos/:todo_id', checkAuthentication, todoControllers.updateTodo);
-app.delete('/api/todos/:todo_id', checkAuthentication, todoControllers.deleteTodo);
+app.get(
+  '/api/events',
+  checkAuthentication,
+  eventControllers.getEvents
+);
+
+app.post(
+  '/api/events',
+  checkAuthentication,
+  eventControllers.createEvent
+);
+
+app.post(
+  '/api/events/:event_id/join',
+  checkAuthentication,
+  eventControllers.joinEvent
+);
+
+app.delete(
+  '/api/events/:event_id/leave',
+  checkAuthentication,
+  eventControllers.leaveEvent
+);
+
+app.delete(
+  '/api/events/:event_id',
+  checkAuthentication,
+  eventControllers.deleteEvent
+);
+
+// ====================================
+// Matchmaking Routes
+// ====================================
+
+app.get(
+  '/api/matchmaking/recommended',
+  checkAuthentication,
+  matchmakingControllers.getRecommendedEvents
+);
+
+// ====================================
+// Messaging Routes
+// ====================================
+
+app.get(
+  '/api/conversations',
+  checkAuthentication,
+  messageControllers.getConversations
+);
+
+app.post(
+  '/api/conversations',
+  checkAuthentication,
+  messageControllers.startConversation
+);
+
+app.get(
+  '/api/conversations/:conversation_id/messages',
+  checkAuthentication,
+  messageControllers.getMessages
+);
+
+app.post(
+  '/api/conversations/:conversation_id/messages',
+  checkAuthentication,
+  messageControllers.sendMessage
+);
 
 // ====================================
 // Global Error Handler
 // ====================================
 
-const handleError = (err, req, res, next) => {
+const handleError = (
+  err,
+  req,
+  res,
+  next
+) => {
   console.error(err);
-  res.status(500).send({ message: 'Internal Server Error' });
+
+  res.status(500).send({
+    message: 'Internal Server Error',
+  });
 };
+
 app.use(handleError);
 
 // ====================================
 // Listen
 // ====================================
 
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+app.listen(PORT, () =>
+  console.log(
+    `Server running at http://localhost:${PORT}`
+  )
+);

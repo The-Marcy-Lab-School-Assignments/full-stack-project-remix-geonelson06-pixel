@@ -1,49 +1,84 @@
-import pool from '../db/pool.js';
+const pool =
+  require('../db/pool');
 
-export const getPlayerCount = async (eventId) => {
-  const query = `
-    SELECT COUNT(*)
-    FROM event_players
-    WHERE event_id = $1
-  `;
+// ====================================
+// PLAYER COUNT
+// ====================================
 
-  const result = await pool.query(query, [eventId]);
+const getPlayerCount =
+  async (eventId) => {
+    const query = `
+      SELECT COUNT(*)
+      FROM event_players
+      WHERE event_id = $1
+    `;
 
-  return Number(result.rows[0].count);
-};
+    const result =
+      await pool.query(
+        query,
+        [eventId]
+      );
 
-export const addPlayerToEvent = async (
-  eventId,
-  userId
-) => {
-  const query = `
-    INSERT INTO event_players
-    (
-      event_id,
-      user_id
-    )
-    VALUES ($1, $2)
-    ON CONFLICT DO NOTHING
-    RETURNING *
-  `;
+    return Number(
+      result.rows[0].count
+    );
+  };
 
-  const result = await pool.query(query, [
+// ====================================
+// ADD PLAYER
+// ====================================
+
+const addPlayerToEvent =
+  async (
     eventId,
-    userId,
-  ]);
+    userId
+  ) => {
+    const query = `
+      INSERT INTO event_players
+      (
+        event_id,
+        user_id
+      )
 
-  return result.rows[0];
-};
+      VALUES ($1, $2)
 
-export const removePlayerFromEvent = async (
-  eventId,
-  userId
-) => {
-  const query = `
-    DELETE FROM event_players
-    WHERE event_id = $1
-    AND user_id = $2
-  `;
+      ON CONFLICT DO NOTHING
 
-  await pool.query(query, [eventId, userId]);
+      RETURNING *
+    `;
+
+    const result =
+      await pool.query(
+        query,
+        [eventId, userId]
+      );
+
+    return result.rows[0];
+  };
+
+// ====================================
+// REMOVE PLAYER
+// ====================================
+
+const removePlayerFromEvent =
+  async (
+    eventId,
+    userId
+  ) => {
+    const query = `
+      DELETE FROM event_players
+      WHERE event_id = $1
+      AND user_id = $2
+    `;
+
+    await pool.query(query, [
+      eventId,
+      userId,
+    ]);
+  };
+
+module.exports = {
+  getPlayerCount,
+  addPlayerToEvent,
+  removePlayerFromEvent,
 };

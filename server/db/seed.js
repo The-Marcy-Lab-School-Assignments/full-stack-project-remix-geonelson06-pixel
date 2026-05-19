@@ -1,6 +1,6 @@
-import bcrypt from 'bcrypt';
+const bcrypt = require('bcrypt');
 
-import pool from './pool.js';
+const pool = require('./pool');
 
 const SALT_ROUNDS = 10;
 
@@ -33,6 +33,7 @@ const seed = async () => {
       game TEXT NOT NULL,
       minigame_type TEXT,
       rules TEXT,
+      turn_count INTEGER,
       event_date TIMESTAMP,
       host_user_id INTEGER REFERENCES users(user_id)
       ON DELETE CASCADE
@@ -63,7 +64,8 @@ const seed = async () => {
       conversation_id INTEGER REFERENCES conversations(conversation_id)
       ON DELETE CASCADE,
       user_id INTEGER REFERENCES users(user_id)
-      ON DELETE CASCADE
+      ON DELETE CASCADE,
+      UNIQUE(conversation_id, user_id)
     );
   `);
 
@@ -79,14 +81,12 @@ const seed = async () => {
     );
   `);
 
-  // HASH PASSWORDS
   const passwordHash =
     await bcrypt.hash(
       'password123',
       SALT_ROUNDS
     );
 
-  // SEED USERS
   await pool.query(`
     INSERT INTO users
     (
@@ -97,7 +97,9 @@ const seed = async () => {
       preferred_rules,
       password_hash
     )
+
     VALUES
+
     (
       'mariofan',
       'mario@example.com',
@@ -106,6 +108,7 @@ const seed = async () => {
       'Skill-Based',
       '${passwordHash}'
     ),
+
     (
       'luigiking',
       'luigi@example.com',
@@ -114,6 +117,69 @@ const seed = async () => {
       'Mixed',
       '${passwordHash}'
     );
+  `);
+
+  await pool.query(`
+    INSERT INTO events
+    (
+      title,
+      game,
+      minigame_type,
+      rules,
+      turn_count,
+      event_date,
+      host_user_id
+    )
+
+    VALUES
+
+    (
+      'Friday Night Superstars',
+      'Mario Party Superstars',
+      'Skill-Based',
+      '20 turns, no CPUs, bonus stars on',
+      20,
+      NOW() + INTERVAL '2 days',
+      1
+    ),
+
+    (
+      'Jamboree Casual Crew',
+      'Super Mario Party Jamboree',
+      'Mixed',
+      '15 turns, friendly table talk welcome',
+      15,
+      NOW() + INTERVAL '4 days',
+      2
+    );
+  `);
+
+  await pool.query(`
+    INSERT INTO event_players
+    (event_id, user_id)
+
+    VALUES
+      (1, 1),
+      (2, 2);
+  `);
+
+  await pool.query(`
+    INSERT INTO conversations
+    DEFAULT VALUES;
+
+    INSERT INTO conversation_participants
+    (conversation_id, user_id)
+
+    VALUES
+      (1, 1),
+      (1, 2);
+
+    INSERT INTO messages
+    (conversation_id, sender_id, content)
+
+    VALUES
+      (1, 1, 'Ready for Friday?'),
+      (1, 2, 'Absolutely. I call Luigi.');
   `);
 
   console.log('Database seeded');

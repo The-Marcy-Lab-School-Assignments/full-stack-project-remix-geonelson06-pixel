@@ -4,18 +4,23 @@ import {
   fetchEvents,
 } from '../adapters/event-adapters';
 
-import { logout } from '../adapters/auth-adapters';
+import {
+  fetchFilteredEvents,
+} from '../adapters/matchmaking-adapters';
 
-import Navbar from './Navbar';
 import CreateEventForm from './CreateEventForm';
 import EventList from './EventList';
+import MatchmakingFilters from './MatchmakingFilters';
 
 const EventPage = ({
   currentUser,
-  setCurrentUser,
 }) => {
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedGame, setSelectedGame] =
+    useState('');
+  const [selectedType, setSelectedType] =
+    useState('');
 
   const loadEvents = async () => {
     const { data, error } = await fetchEvents();
@@ -32,23 +37,43 @@ const EventPage = ({
     loadEvents();
   }, []);
 
-  const handleLogout = async () => {
-    await logout();
+  useEffect(() => {
+    const loadFilteredEvents = async () => {
+      setIsLoading(true);
 
-    setCurrentUser(null);
-  };
+      const { data, error } =
+        await fetchFilteredEvents(
+          selectedGame,
+          selectedType
+        );
+
+      if (error) {
+        setIsLoading(false);
+        return alert(error);
+      }
+
+      setEvents(data);
+      setIsLoading(false);
+    };
+
+    loadFilteredEvents();
+  }, [selectedGame, selectedType]);
 
   return (
-    <div>
-      <Navbar
-        currentUser={currentUser}
-        handleLogout={handleLogout}
-      />
+    <main className="event-page">
+      <section className="control-panel">
+        <CreateEventForm loadEvents={loadEvents} />
 
-      <CreateEventForm loadEvents={loadEvents} />
+        <MatchmakingFilters
+          selectedGame={selectedGame}
+          setSelectedGame={setSelectedGame}
+          selectedType={selectedType}
+          setSelectedType={setSelectedType}
+        />
+      </section>
 
       {isLoading ? (
-        <h2>Loading Events...</h2>
+        <h2 className="loading">Loading events...</h2>
       ) : (
         <EventList
           events={events}
@@ -56,7 +81,7 @@ const EventPage = ({
           currentUser={currentUser}
         />
       )}
-    </div>
+    </main>
   );
 };
 

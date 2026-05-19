@@ -1,77 +1,242 @@
-import {
+const {
   createConversation,
   addParticipant,
+  findDirectConversation,
+  isConversationParticipant,
   getUserConversations,
-} from '../models/conversationModel.js';
+} = require('../models/conversationModel');
 
-import {
+const {
+  findUserById,
+  findUserByFriendCode,
+} = require('../models/userModel');
+
+const {
   createMessage,
   getConversationMessages,
-} from '../models/messageModel.js';
+} = require('../models/messageModel');
 
-export const getConversations = async (
+// ====================================
+// GET CONVERSATIONS
+// ====================================
+
+const getConversations = async (
   req,
   res
 ) => {
-  const userId = req.session.currentUser.user_id;
+  try {
+    const userId =
+      req.session.currentUser.user_id;
 
-  const conversations =
-    await getUserConversations(userId);
+    const conversations =
+      await getUserConversations(
+        userId
+      );
 
-  res.json(conversations);
+    res.json(conversations);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      error:
+        'Failed to fetch conversations',
+    });
+  }
 };
 
-export const startConversation = async (
+// ====================================
+// START CONVERSATION
+// ====================================
+
+const startConversation =
+  async (req, res) => {
+    try {
+      const currentUserId =
+        req.session.currentUser.user_id;
+
+      const {
+        participant_id,
+        friend_code,
+      } =
+        req.body;
+
+      let participant;
+
+      if (friend_code?.trim()) {
+        participant =
+          await findUserByFriendCode(
+            friend_code.trim()
+          );
+      } else if (participant_id) {
+        participant =
+          await findUserById(
+            Number(participant_id)
+          );
+      }
+
+      if (
+        !participant ||
+        participant.user_id === currentUserId
+      ) {
+        return res.status(
+          participant ? 400 : 404
+        ).json({
+          error:
+            participant
+              ? 'Choose another user to message'
+              : 'User not found',
+        });
+      }
+
+      const participantId =
+        participant.user_id;
+
+      const existingConversation =
+        await findDirectConversation(
+          currentUserId,
+          participantId
+        );
+
+      if (existingConversation) {
+        return res.json(
+          existingConversation
+        );
+      }
+
+      const conversation =
+        await createConversation();
+
+      await addParticipant(
+        conversation.conversation_id,
+        currentUserId
+      );
+
+      await addParticipant(
+        conversation.conversation_id,
+        participantId
+      );
+
+      res.status(201).json(
+        conversation
+      );
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        error:
+          'Failed to create conversation',
+      });
+    }
+  };
+
+// ====================================
+// GET MESSAGES
+// ====================================
+
+const getMessages = async (
   req,
   res
 ) => {
-  const currentUserId =
-    req.session.currentUser.user_id;
+  try {
+    const conversationId =
+      req.params.conversation_id;
 
-  const { participant_id } = req.body;
+    const userId =
+      req.session.currentUser.user_id;
 
-  const conversation =
-    await createConversation();
+    const isParticipant =
+      await isConversationParticipant(
+        conversationId,
+        userId
+      );
 
-  await addParticipant(
-    conversation.conversation_id,
-    currentUserId
-  );
+    if (!isParticipant) {
+      return res.status(403).json({
+        error:
+          'You are not in this conversation',
+      });
+    }
 
-  await addParticipant(
-    conversation.conversation_id,
-    participant_id
-  );
+    const messages =
+      await getConversationMessages(
+        conversationId
+      );
 
-  res.status(201).json(conversation);
+    res.json(messages);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      error:
+        'Failed to fetch messages',
+    });
+  }
 };
 
-export const getMessages = async (
+// ====================================
+// SEND MESSAGE
+// ====================================
+
+const sendMessage = async (
   req,
   res
 ) => {
-  const messages =
-    await getConversationMessages(
-      req.params.conversation_id
+  try {
+    const senderId =
+      req.session.currentUser.user_id;
+
+    const conversationId =
+      req.params.conversation_id;
+
+    const { content } =
+      req.body;
+
+    const isParticipant =
+      await isConversationParticipant(
+        conversationId,
+        senderId
+      );
+
+    if (!isParticipant) {
+      return res.status(403).json({
+        error:
+          'You are not in this conversation',
+      });
+    }
+
+    const trimmedContent =
+      content?.trim();
+
+    if (!trimmedContent) {
+      return res.status(400).json({
+        error:
+          'Message content is required',
+      });
+    }
+
+    const message =
+      await createMessage(
+        conversationId,
+        senderId,
+        trimmedContent
+      );
+
+    res.status(201).json(
+      message
     );
+  } catch (error) {
+    console.error(error);
 
-  res.json(messages);
+    res.status(500).json({
+      error:
+        'Failed to send message',
+    });
+  }
 };
 
-export const sendMessage = async (
-  req,
-  res
-) => {
-  const senderId =
-    req.session.currentUser.user_id;
-
-  const { content } = req.body;
-
-  const message = await createMessage(
-    req.params.conversation_id,
-    senderId,
-    content
-  );
-
-  res.status(201).json(message);
+module.exports = {
+  getConversations,
+  startConversation,
+  getMessages,
+  sendMessage,
 };

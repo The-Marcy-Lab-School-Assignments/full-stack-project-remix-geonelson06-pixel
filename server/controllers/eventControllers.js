@@ -56,11 +56,19 @@ const createEvent = async (
       game,
       minigame_type,
       rules,
+      turn_count,
       event_date,
     } = req.body;
 
     const hostUserId =
       req.session.currentUser.user_id;
+
+    if (!title || !game) {
+      return res.status(400).json({
+        error:
+          'Title and game are required',
+      });
+    }
 
     const event =
       await createNewEvent(
@@ -68,7 +76,10 @@ const createEvent = async (
         game,
         minigame_type,
         rules,
-        event_date,
+        turn_count
+          ? Number(turn_count)
+          : null,
+        event_date || null,
         hostUserId
       );
 
@@ -174,8 +185,21 @@ const deleteEvent = async (
     const eventId =
       req.params.event_id;
 
+    const hostUserId =
+      req.session.currentUser.user_id;
+
     const deletedEvent =
-      await removeEvent(eventId);
+      await removeEvent(
+        eventId,
+        hostUserId
+      );
+
+    if (!deletedEvent) {
+      return res.status(403).json({
+        error:
+          'You can only delete events you created',
+      });
+    }
 
     res.json(deletedEvent);
   } catch (error) {

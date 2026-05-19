@@ -5,6 +5,17 @@ const EventList = ({
   loadEvents,
   currentUser,
 }) => {
+  if (!events.length) {
+    return (
+      <div className="empty-state">
+        <h2>No lobbies found</h2>
+        <p>
+          Try a different filter or create the first event for this ruleset.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="event-grid">
       {events.map((event) => (

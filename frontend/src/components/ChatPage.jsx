@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react';
 import {
   fetchConversations,
   fetchMessages,
+  startConversation,
 } from '../adapters/message-adapters';
 
 import ConversationList from './ConversationList';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 
-const ChatPage = () => {
+const ChatPage = ({ currentUser }) => {
   const [conversations, setConversations] =
     useState([]);
 
@@ -19,16 +20,36 @@ const ChatPage = () => {
 
   const [messages, setMessages] =
     useState([]);
+  const [friendCode, setFriendCode] =
+    useState('');
+
+  const loadConversations =
+    async () => {
+      const { data, error } =
+        await fetchConversations();
+
+      if (error) {
+        return alert(error);
+      }
+
+      setConversations(data);
+    };
+
+  const loadMessages =
+    async (conversationId) => {
+      const { data, error } =
+        await fetchMessages(
+          conversationId
+        );
+
+      if (error) {
+        return alert(error);
+      }
+
+      setMessages(data);
+    };
 
   useEffect(() => {
-    const loadConversations =
-      async () => {
-        const { data } =
-          await fetchConversations();
-
-        setConversations(data);
-      };
-
     loadConversations();
   }, []);
 
@@ -37,37 +58,89 @@ const ChatPage = () => {
       return;
     }
 
-    const loadMessages =
-      async () => {
-        const { data } =
-          await fetchMessages(
-            selectedConversation
-          );
-
-        setMessages(data);
-      };
-
-    loadMessages();
+    loadMessages(selectedConversation);
   }, [selectedConversation]);
+
+  const handleStartConversation =
+    async (event) => {
+      event.preventDefault();
+
+      const { data, error } =
+        await startConversation(
+          friendCode
+        );
+
+      if (error) {
+        return alert(error);
+      }
+
+      setFriendCode('');
+      await loadConversations();
+      setSelectedConversation(
+        data.conversation_id
+      );
+    };
 
   return (
     <div className="chat-page">
-      <ConversationList
-        conversations={conversations}
-        setSelectedConversation={
-          setSelectedConversation
-        }
-      />
+      <aside className="chat-sidebar">
+        <form
+          className="conversation-form"
+          onSubmit={handleStartConversation}
+        >
+          <h2>Start a chat</h2>
+
+          <input
+            value={friendCode}
+            onChange={(event) =>
+              setFriendCode(
+                event.target.value
+              )
+            }
+            placeholder="Switch Code"
+            required
+          />
+
+          <button>Open Conversation</button>
+        </form>
+
+        <ConversationList
+          conversations={conversations}
+          selectedConversation={
+            selectedConversation
+          }
+          setSelectedConversation={
+            setSelectedConversation
+          }
+        />
+      </aside>
 
       <div className="chat-window">
-        <MessageList messages={messages} />
+        {selectedConversation ? (
+          <>
+            <MessageList
+              messages={messages}
+              currentUser={currentUser}
+            />
 
-        {selectedConversation && (
-          <MessageInput
-            conversationId={
-              selectedConversation
-            }
-          />
+            <MessageInput
+              conversationId={
+                selectedConversation
+              }
+              onMessageSent={() =>
+                loadMessages(
+                  selectedConversation
+                )
+              }
+            />
+          </>
+        ) : (
+          <div className="empty-state">
+            <h2>Select a conversation</h2>
+            <p>
+              Start with another user's Switch code, then your messages will appear here.
+            </p>
+          </div>
         )}
       </div>
     </div>

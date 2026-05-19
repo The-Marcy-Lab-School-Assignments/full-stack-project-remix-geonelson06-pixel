@@ -47,7 +47,7 @@ app.use(
 
 app.use(express.json());
 
-// In production, serve the React app
+// Serve frontend build in production
 
 app.use(
   express.static(
@@ -167,7 +167,8 @@ const handleError = (
   console.error(err);
 
   res.status(500).send({
-    message: 'Internal Server Error',
+    message:
+      'Internal Server Error',
   });
 };
 

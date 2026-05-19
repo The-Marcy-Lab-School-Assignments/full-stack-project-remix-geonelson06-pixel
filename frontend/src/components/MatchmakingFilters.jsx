@@ -17,11 +17,11 @@ const MatchmakingFilters = ({
         </option>
 
         <option>
-          N64 Games
+          N64 Classics
         </option>
 
         <option>
-          GC/Wii/Wii U Games
+          GC/Wii/Wii U Classics
         </option>
 
         <option>

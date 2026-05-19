@@ -34,6 +34,21 @@ export const fetchConversations =
     return handleFetch('/api/conversations');
   };
 
+export const startConversation =
+  async (friendCode) => {
+    return handleFetch('/api/conversations', {
+      method: 'POST',
+
+      headers: {
+        'Content-Type': 'application/json',
+      },
+
+      body: JSON.stringify({
+        friend_code: friendCode,
+      }),
+    });
+  };
+
 export const fetchMessages = async (
   conversationId
 ) => {

@@ -1,145 +1,164 @@
-const pool = require('../db/pool');
+const pool =
+  require('../db/pool');
+
+const eventSelect = `
+  SELECT
+    events.*,
+    users.username,
+    users.friend_code,
+    COALESCE(player_counts.player_count, 0)::INTEGER
+      AS player_count
+
+  FROM events
+
+  JOIN users
+    ON events.host_user_id = users.user_id
+
+  LEFT JOIN (
+    SELECT event_id, COUNT(*) AS player_count
+    FROM event_players
+    GROUP BY event_id
+  ) player_counts
+    ON events.event_id = player_counts.event_id
+`;
 
 // ====================================
 // GET ALL EVENTS
 // ====================================
 
-const getAllEvents = async () => {
-  const query = `
-    SELECT
-      events.*,
-      users.username,
-      users.friend_code
-    FROM events
+const getAllEvents =
+  async () => {
+    const query = `
+      ${eventSelect}
+      ORDER BY event_date ASC
+    `;
 
-    JOIN users
-      ON events.host_user_id = users.user_id
+    const result =
+      await pool.query(query);
 
-    ORDER BY event_date ASC
-  `;
-
-  const result = await pool.query(query);
-
-  return result.rows;
-};
+    return result.rows;
+  };
 
 // ====================================
 // CREATE EVENT
 // ====================================
 
-const createNewEvent = async (
-  title,
-  game,
-  minigameType,
-  rules,
-  eventDate,
-  hostUserId
-) => {
-  const query = `
-    INSERT INTO events
-    (
-      title,
-      game,
-      minigame_type,
-      rules,
-      event_date,
-      host_user_id
-    )
-
-    VALUES ($1, $2, $3, $4, $5, $6)
-
-    RETURNING *
-  `;
-
-  const values = [
+const createNewEvent =
+  async (
     title,
     game,
     minigameType,
     rules,
+    turnCount,
     eventDate,
-    hostUserId,
-  ];
+    hostUserId
+  ) => {
+    const query = `
+      INSERT INTO events
+      (
+        title,
+        game,
+        minigame_type,
+        rules,
+        turn_count,
+        event_date,
+        host_user_id
+      )
 
-  const result = await pool.query(
-    query,
-    values
-  );
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
 
-  return result.rows[0];
-};
+      RETURNING *
+    `;
+
+    const values = [
+      title,
+      game,
+      minigameType,
+      rules,
+      turnCount,
+      eventDate,
+      hostUserId,
+    ];
+
+    const result =
+      await pool.query(
+        query,
+        values
+      );
+
+    return result.rows[0];
+  };
 
 // ====================================
 // DELETE EVENT
 // ====================================
 
 const removeEvent = async (
-  eventId
+  eventId,
+  hostUserId
 ) => {
   const query = `
     DELETE FROM events
     WHERE event_id = $1
+    AND host_user_id = $2
     RETURNING *
   `;
 
-  const result = await pool.query(
-    query,
-    [eventId]
-  );
+  const result =
+    await pool.query(
+      query,
+      [eventId, hostUserId]
+    );
 
   return result.rows[0];
 };
 
 // ====================================
-// FILTERED EVENTS
+// FILTER EVENTS
 // ====================================
 
-const getFilteredEvents = async (
-  game,
-  minigameType
-) => {
-  let query = `
-    SELECT
-      events.*,
-      users.username,
-      users.friend_code
+const getFilteredEvents =
+  async (
+    game,
+    minigameType
+  ) => {
+    let query = `
+      ${eventSelect}
+      WHERE 1=1
+    `;
 
-    FROM events
+    const values = [];
 
-    JOIN users
-      ON events.host_user_id = users.user_id
+    if (game) {
+      values.push(game);
 
-    WHERE 1=1
-  `;
+      query += `
+        AND events.game = $${values.length}
+      `;
+    }
 
-  const values = [];
+    if (minigameType) {
+      values.push(
+        minigameType
+      );
 
-  if (game) {
-    values.push(game);
+      query += `
+        AND events.minigame_type = $${values.length}
+      `;
+    }
 
     query += `
-      AND game = $${values.length}
+      ORDER BY event_date ASC
     `;
-  }
 
-  if (minigameType) {
-    values.push(minigameType);
+    const result =
+      await pool.query(
+        query,
+        values
+      );
 
-    query += `
-      AND minigame_type = $${values.length}
-    `;
-  }
-
-  query += `
-    ORDER BY event_date ASC
-  `;
-
-  const result = await pool.query(
-    query,
-    values
-  );
-
-  return result.rows;
-};
+    return result.rows;
+  };
 
 module.exports = {
   getAllEvents,

@@ -5,6 +5,7 @@ import { sendMessage }
 
 const MessageInput = ({
   conversationId,
+  onMessageSent,
 }) => {
   const [content, setContent] =
     useState('');
@@ -14,12 +15,21 @@ const MessageInput = ({
   ) => {
     event.preventDefault();
 
-    await sendMessage(
+    if (!content.trim()) {
+      return;
+    }
+
+    const { error } = await sendMessage(
       conversationId,
       content
     );
 
+    if (error) {
+      return alert(error);
+    }
+
     setContent('');
+    onMessageSent();
   };
 
   return (

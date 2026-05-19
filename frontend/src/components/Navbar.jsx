@@ -4,15 +4,15 @@ const Navbar = ({
 }) => {
   return (
     <div className="navbar">
-      <div>
-        👤 {currentUser.username}
+      <div className="user-chip">
+        <span>{currentUser.username}</span>
+        <small>{currentUser.friend_code}</small>
       </div>
 
-      <div>
-        🎮 {currentUser.friend_code}
-      </div>
-
-      <button onClick={handleLogout}>
+      <button
+        className="ghost-button"
+        onClick={handleLogout}
+      >
         Logout
       </button>
     </div>

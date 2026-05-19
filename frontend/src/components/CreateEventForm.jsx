@@ -11,6 +11,7 @@ const CreateEventForm = ({ loadEvents }) => {
       game: form.game.value,
       minigame_type: form.minigame_type.value,
       rules: form.rules.value,
+      turn_count: form.turn_count.value,
       event_date: form.event_date.value,
     };
 
@@ -38,18 +39,28 @@ const CreateEventForm = ({ loadEvents }) => {
       <select name="game">
         <option>Mario Party Superstars</option>
         <option>Super Mario Party</option>
-        <option>Mario Party 8</option>
+        <option>Super Mario Party Jamboree</option>
+        <option>N64 Classics</option>
+        <option>GC/Wii/Wii U Classics</option>
       </select>
 
       <select name="minigame_type">
+        <option>Mixed</option>
         <option>Skill-Based</option>
         <option>Luck-Based</option>
-        <option>Mixed</option>
       </select>
 
       <input
         name="rules"
         placeholder="Custom Rules"
+      />
+
+      <input
+        type="number"
+        name="turn_count"
+        min="1"
+        max="50"
+        placeholder="Turn Count"
       />
 
       <input

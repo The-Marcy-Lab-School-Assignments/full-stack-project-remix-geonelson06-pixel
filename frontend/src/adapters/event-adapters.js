@@ -46,6 +46,15 @@ export const joinEvent = async (eventId) => {
   });
 };
 
+export const leaveEvent = async (eventId) => {
+  return handleFetch(
+    `/api/events/${eventId}/leave`,
+    {
+      method: 'DELETE',
+    }
+  );
+};
+
 export const deleteEvent = async (eventId) => {
   return handleFetch(`/api/events/${eventId}`, {
     method: 'DELETE',

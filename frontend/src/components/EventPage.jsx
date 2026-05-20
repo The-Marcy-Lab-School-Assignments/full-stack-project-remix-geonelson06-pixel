@@ -1,4 +1,8 @@
-import { useEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 
 import {
   fetchEvents,
@@ -11,6 +15,7 @@ import {
 import CreateEventForm from './CreateEventForm';
 import EventList from './EventList';
 import MatchmakingFilters from './MatchmakingFilters';
+import socket from '../socket';
 
 const EventPage = ({
   currentUser,
@@ -22,42 +27,50 @@ const EventPage = ({
   const [selectedType, setSelectedType] =
     useState('');
 
-  const loadEvents = async () => {
-    const { data, error } = await fetchEvents();
+  const loadEvents =
+    useCallback(
+      async () => {
+        setIsLoading(true);
 
-    if (error) {
-      return alert(error);
-    }
+        const request =
+          selectedGame || selectedType
+            ? fetchFilteredEvents(
+                selectedGame,
+                selectedType
+              )
+            : fetchEvents();
 
-    setEvents(data);
-    setIsLoading(false);
-  };
+        const { data, error } =
+          await request;
+
+        if (error) {
+          setIsLoading(false);
+          return alert(error);
+        }
+
+        setEvents(data);
+        setIsLoading(false);
+      },
+      [selectedGame, selectedType]
+    );
 
   useEffect(() => {
     loadEvents();
-  }, []);
+  }, [loadEvents]);
 
   useEffect(() => {
-    const loadFilteredEvents = async () => {
-      setIsLoading(true);
+    socket.on(
+      'events:changed',
+      loadEvents
+    );
 
-      const { data, error } =
-        await fetchFilteredEvents(
-          selectedGame,
-          selectedType
-        );
-
-      if (error) {
-        setIsLoading(false);
-        return alert(error);
-      }
-
-      setEvents(data);
-      setIsLoading(false);
+    return () => {
+      socket.off(
+        'events:changed',
+        loadEvents
+      );
     };
-
-    loadFilteredEvents();
-  }, [selectedGame, selectedType]);
+  }, [loadEvents]);
 
   return (
     <main className="event-page">

@@ -16,6 +16,13 @@ const {
   getConversationMessages,
 } = require('../models/messageModel');
 
+const broadcastConversationsChanged =
+  (req) => {
+    req.app.get('io')?.emit(
+      'conversations:changed'
+    );
+  };
+
 // ====================================
 // GET CONVERSATIONS
 // ====================================
@@ -115,6 +122,8 @@ const startConversation =
         conversation.conversation_id,
         participantId
       );
+
+      broadcastConversationsChanged(req);
 
       res.status(201).json(
         conversation
@@ -220,6 +229,18 @@ const sendMessage = async (
         senderId,
         trimmedContent
       );
+
+    const io = req.app.get('io');
+
+    io?.to(
+      `conversation:${conversationId}`
+    ).emit('message:new', {
+      conversationId:
+        Number(conversationId),
+      message,
+    });
+
+    broadcastConversationsChanged(req);
 
     res.status(201).json(
       message

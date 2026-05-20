@@ -11,6 +11,12 @@ const {
   removePlayerFromEvent,
 } = require('../models/eventPlayerModel');
 
+const broadcastEventsChanged = (req) => {
+  req.app.get('io')?.emit(
+    'events:changed'
+  );
+};
+
 // ====================================
 // GET EVENTS
 // ====================================
@@ -90,6 +96,8 @@ const createEvent = async (
       hostUserId
     );
 
+    broadcastEventsChanged(req);
+
     res.status(201).json(event);
   } catch (error) {
     console.error(error);
@@ -129,6 +137,8 @@ const joinEvent = async (
       userId
     );
 
+    broadcastEventsChanged(req);
+
     res.json({
       message: 'Joined event',
     });
@@ -160,6 +170,8 @@ const leaveEvent = async (
       eventId,
       userId
     );
+
+    broadcastEventsChanged(req);
 
     res.json({
       message: 'Left event',
@@ -200,6 +212,8 @@ const deleteEvent = async (
           'You can only delete events you created',
       });
     }
+
+    broadcastEventsChanged(req);
 
     res.json(deletedEvent);
   } catch (error) {

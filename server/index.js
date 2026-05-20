@@ -1,5 +1,7 @@
 const path = require('path');
 
+const http = require('http');
+
 const express = require('express');
 
 const cookieSession =
@@ -25,7 +27,18 @@ const messageControllers =
 const matchmakingControllers =
   require('./controllers/matchmakingControllers');
 
+const createSocketServer =
+  require('./socket');
+
 const app = express();
+
+const server =
+  http.createServer(app);
+
+const io =
+  createSocketServer(server);
+
+app.set('io', io);
 
 const PORT =
   process.env.PORT || 8080;
@@ -178,7 +191,7 @@ app.use(handleError);
 // Listen
 // ====================================
 
-app.listen(PORT, () =>
+server.listen(PORT, () =>
   console.log(
     `Server running at http://localhost:${PORT}`
   )

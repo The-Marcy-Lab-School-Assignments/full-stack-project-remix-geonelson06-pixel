@@ -1,4 +1,8 @@
-import { useEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 
 import {
   fetchConversations,
@@ -9,6 +13,7 @@ import {
 import ConversationList from './ConversationList';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
+import socket from '../socket';
 
 const ChatPage = ({ currentUser }) => {
   const [conversations, setConversations] =
@@ -24,7 +29,7 @@ const ChatPage = ({ currentUser }) => {
     useState('');
 
   const loadConversations =
-    async () => {
+    useCallback(async () => {
       const { data, error } =
         await fetchConversations();
 
@@ -33,10 +38,10 @@ const ChatPage = ({ currentUser }) => {
       }
 
       setConversations(data);
-    };
+    }, []);
 
   const loadMessages =
-    async (conversationId) => {
+    useCallback(async (conversationId) => {
       const { data, error } =
         await fetchMessages(
           conversationId
@@ -47,11 +52,11 @@ const ChatPage = ({ currentUser }) => {
       }
 
       setMessages(data);
-    };
+    }, []);
 
   useEffect(() => {
     loadConversations();
-  }, []);
+  }, [loadConversations]);
 
   useEffect(() => {
     if (!selectedConversation) {
@@ -59,7 +64,62 @@ const ChatPage = ({ currentUser }) => {
     }
 
     loadMessages(selectedConversation);
-  }, [selectedConversation]);
+  }, [loadMessages, selectedConversation]);
+
+  useEffect(() => {
+    socket.on(
+      'conversations:changed',
+      loadConversations
+    );
+
+    return () => {
+      socket.off(
+        'conversations:changed',
+        loadConversations
+      );
+    };
+  }, [loadConversations]);
+
+  useEffect(() => {
+    if (!selectedConversation) {
+      return undefined;
+    }
+
+    socket.emit(
+      'conversation:join',
+      selectedConversation
+    );
+
+    const handleNewMessage = ({
+      conversationId,
+    }) => {
+      if (
+        Number(conversationId) !==
+        Number(selectedConversation)
+      ) {
+        return;
+      }
+
+      loadMessages(selectedConversation);
+      loadConversations();
+    };
+
+    socket.on(
+      'message:new',
+      handleNewMessage
+    );
+
+    return () => {
+      socket.off(
+        'message:new',
+        handleNewMessage
+      );
+    };
+  }, [
+    loadConversations,
+    loadMessages,
+    selectedConversation,
+  ]);
 
   const handleStartConversation =
     async (event) => {
